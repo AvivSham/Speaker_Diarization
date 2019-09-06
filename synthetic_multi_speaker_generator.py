@@ -6,6 +6,10 @@ import numpy as np
 from progressbar import progressbar
 from scipy.io import wavfile as wavf
 
+SILANCE_LIKELYHOOD = .5
+MIN_SIL_LEN = 250
+MAX_SIL_LEN = 3000
+MAX_SEG_LEN = 3000
 
 class SyntheticMultiSpeakerGen:
     def __init__(self, path_to_vox, output_path, sample_len_sec=10):
@@ -39,8 +43,8 @@ class SyntheticMultiSpeakerGen:
         label = np.zeros(len(sample))
         start_idx = 0
         while start_idx < len(sample):
-            if random.random() > .5:
-                start_idx += random.randint(250, 1500)
+            if random.random() > SILANCE_LIKELYHOOD:
+                start_idx += random.randint(MIN_SIL_LEN, MAX_SIL_LEN)
             else:
                 random_file = random.choice(self.person_files[person_id])
                 new_seg = self.get_audio_segment(random_file)
@@ -55,6 +59,7 @@ class SyntheticMultiSpeakerGen:
         seg_middle = int(seg_len // 2 + random.randint(-seg_len // 2 + 100, seg_len // 2 - 100))
         seg = seg[
               random.randint(0, seg_middle - 100):random.randint(seg_middle + 100, seg_len)]
+        seg = seg[:MAX_SEG_LEN]
         return seg
 
 
