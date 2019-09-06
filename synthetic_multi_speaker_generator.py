@@ -24,7 +24,17 @@ class SyntheticMultiSpeakerGen:
         [self.get_sample() for _ in progressbar(range(num_samples))]
 
     def get_sample(self):
-        person_id = random.choice(self.persons)
+        person_ids = random.sample(self.persons,2)
+        label_0, sample_0 = self.get_single_person_sample(person_ids[0])
+        label_1, sample_1 = self.get_single_person_sample(person_ids[1])
+        label = label_0 + label_1*2
+        sample = sample_0.overlay(sample_1, 0)
+
+        id = random.randint(0, 10000000)
+        sample.export(f"{self.output_path}/wav/{person_ids[0]}_{person_ids[1]}_{id}.wav", format='wav')
+        np.save(f"{self.output_path}/label/{person_ids[0]}_{person_ids[1]}_{id}.npy", label)
+
+    def get_single_person_sample(self, person_id):
         sample = AudioSegment.silent(duration=self.sample_len_sec * 1000)
         label = np.zeros(len(sample))
         start_idx = 0
@@ -37,10 +47,7 @@ class SyntheticMultiSpeakerGen:
                 sample = sample.overlay(new_seg, position=start_idx)
                 label[start_idx: start_idx + len(new_seg)] = 1
                 start_idx += len(new_seg)
-
-        id = random.randint(0, 10000000)
-        sample.export(f"{self.output_path}/wav/{person_id}_{id}.wav", format='wav')
-        np.save(f"{self.output_path}/label/{person_id}_{id}.npy", label)
+        return label, sample
 
     def get_audio_segment(self, random_file):
         seg = AudioSegment.from_file(random_file)
