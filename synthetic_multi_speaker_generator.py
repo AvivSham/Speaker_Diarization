@@ -28,13 +28,13 @@ class SyntheticMultiSpeakerGen:
         sample = AudioSegment.silent(duration=self.sample_len_sec * 1000)
         label = np.zeros(len(sample))
         start_idx = 0
-        while start_idx > len(sample):
+        while start_idx < len(sample):
             if random.random() > .5:
-                start_idx += random.randint(100, 1500)
+                start_idx += random.randint(250, 1500)
             else:
                 random_file = random.choice(self.person_files[person_id])
                 new_seg = self.get_audio_segment(random_file)
-                sample.overlay(new_seg, position=start_idx)
+                sample = sample.overlay(new_seg, position=start_idx)
                 label[start_idx: start_idx + len(new_seg)] = 1
                 start_idx += len(new_seg)
 
@@ -121,6 +121,6 @@ class SyntheticMultiSpeakerGen_ver2:
 
 
 if __name__ == '__main__':
-    snyth_convo_gen = SyntheticMultiSpeakerGen_ver2("/home/dan/Downloads/vox_celebs/vox1_dev_wav/wav",
+    snyth_convo_gen = SyntheticMultiSpeakerGen("/home/dan/Downloads/vox_celebs/vox1_dev_wav/wav",
                                                     "/home/dan/Downloads/vox_celebs/synth_convs")
-    snyth_convo_gen.create_sample()
+    snyth_convo_gen.generate_samples(1000)
