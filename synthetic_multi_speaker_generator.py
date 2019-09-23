@@ -4,6 +4,7 @@ from glob import glob
 from pydub import AudioSegment
 import numpy as np
 from progressbar import progressbar
+from pydub.playback import play
 from scipy.io import wavfile as wavf
 
 SILANCE_LIKELYHOOD = .5
@@ -54,7 +55,7 @@ class SyntheticMultiSpeakerGen:
         return label, sample
 
     def get_audio_segment(self, random_file):
-        seg = AudioSegment.from_file(random_file)
+        seg = AudioSegment.from_wav(random_file)
         seg_len = int(len(seg))
         seg_middle = int(seg_len // 2 + random.randint(-seg_len // 2 + 100, seg_len // 2 - 100))
         seg = seg[
@@ -63,7 +64,67 @@ class SyntheticMultiSpeakerGen:
         return seg
 
 
+class SyntheticMultiSpeakerGenVer2:
+    def __init__(self, path_to_vox, output_path, n_segments = 10):
+        self.n_segments = n_segments
+        self.output_path = output_path
+        self.path_to_vox = path_to_vox
+        self.all_files = glob(path_to_vox + "/**/*.wav", recursive=True)
+        self.persons = list(filter(lambda x: os.path.isdir(os.path.join(path_to_vox, x)), os.listdir(path_to_vox)))
+        self.person_files = {person: glob(path_to_vox + "/" + person + "/**/*.wav", recursive=True) for person in
+                             self.persons}
+        self.fs = 1000
+        for dir in ["label", "wav"]:
+            if not os.path.exists(f"{self.output_path}/{dir}"):
+                os.mkdir(f"{self.output_path}/{dir}")
+
+    def generate_samples(self, n_samples):
+        [self.create_sample() for _ in range(n_samples)]
+
+    def create_sample(self):
+        sample = AudioSegment.empty()
+        speaker_1, label_1, speaker_2, label_2, persons_id = self.get_signal_and_label()
+        for i in range(self.n_segments):
+            signal,signal_label = random.choice([[speaker_1,label_1],[speaker_2,label_2]])
+            if i==0:
+                segment_len = 3000
+                segment_start = random.randint(0,len(signal) - segment_len)
+                sample += signal[segment_start:segment_start+segment_len]
+                label = signal_label[segment_start:segment_start+segment_len]
+            else:
+                if random.random() > 0.5:
+                    segment_len = random.randint(0,len(signal))
+                    segment_start = random.randint(0, len(signal) - segment_len)
+                    sample += signal[segment_start:segment_start + segment_len]
+                    label = np.append(label, signal_label[segment_start:segment_start + segment_len])
+                else:
+                    segment_len = random.randint(50,1000)
+                    segment_start = random.randint(0, len(signal) - segment_len)
+                    sample += speaker_1[segment_start:segment_start + segment_len]\
+                        .overlay(speaker_2[segment_start:segment_start + segment_len], segment_start)
+                    label = np.append(label,label_1[segment_start:segment_start + segment_len] \
+                                      + label_2[segment_start:segment_start + segment_len])
+
+        sample.export(f"{self.output_path}/wav/{persons_id[0]}_{persons_id[1]}.wav", format='wav')
+        np.save(f"{self.output_path}/label/{persons_id[0]}_{persons_id[1]}_{id}.npy", label)
+
+    def get_signal_and_label(self):
+        person_curr = random.sample(self.persons, 2)
+        speaker_file_1 = random.choice(self.person_files[person_curr[0]])
+        speaker_1 = AudioSegment.from_file(speaker_file_1)
+        label_1 = np.ones(len(speaker_1))
+        speaker_file_2 = random.choice(self.person_files[person_curr[1]])
+        speaker_2 = AudioSegment.from_file(speaker_file_2)
+        label_2 = 2*np.ones(len(speaker_2))
+        return speaker_1, label_1, speaker_2, label_2, person_curr
+
+    def add_silent(self,speaker,label,start_idx,stop_idx):
+        speaker[start_idx:stop_idx] = AudioSegment.silent(duration=(stop_idx-start_idx))
+        label[start_idx:stop_idx] = 0
+        return  speaker, label
+
+
 if __name__ == '__main__':
-    snyth_convo_gen = SyntheticMultiSpeakerGen("/home/dan/Downloads/vox_celebs/vox1_dev_wav/wav",
-                                               "/home/dan/Downloads/vox_celebs/synth_convs")
+    snyth_convo_gen = SyntheticMultiSpeakerGenVer2("/home/aviv/Data/Voxceleb/vox1_dev_wav/wav",
+                                               "/home/aviv/Data/Voxceleb/synthetic")
     snyth_convo_gen.generate_samples(1000)
