@@ -104,8 +104,8 @@ class SyntheticMultiSpeakerGenVer2:
                         .overlay(speaker_2[segment_start:segment_start + segment_len], segment_start)
                     label = np.append(label,label_1[segment_start:segment_start + segment_len] \
                                       + label_2[segment_start:segment_start + segment_len])
-
-        sample.export(f"{self.output_path}/wav/{persons_id[0]}_{persons_id[1]}.wav", format='wav')
+        id = random.randint(0, 10000000)
+        sample.export(f"{self.output_path}/wav/{persons_id[0]}_{persons_id[1]}_{id}.wav", format='wav')
         np.save(f"{self.output_path}/label/{persons_id[0]}_{persons_id[1]}_{id}.npy", label)
 
     def get_signal_and_label(self):
