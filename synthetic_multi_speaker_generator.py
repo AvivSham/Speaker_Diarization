@@ -99,7 +99,7 @@ class SyntheticMultiSpeakerGenVer2:
                     label = np.append(label, signal_label[segment_start:segment_start + segment_len])
                 else:
                     segment_len = random.randint(50,1000)
-                    segment_start = random.randint(0, len(signal) - segment_len)
+                    segment_start = random.randint(0, min(len(speaker_1),len(speaker_2)) - segment_len)
                     sample += speaker_1[segment_start:segment_start + segment_len]\
                         .overlay(speaker_2[segment_start:segment_start + segment_len], segment_start)
                     label = np.append(label,label_1[segment_start:segment_start + segment_len] \
@@ -127,4 +127,4 @@ class SyntheticMultiSpeakerGenVer2:
 if __name__ == '__main__':
     snyth_convo_gen = SyntheticMultiSpeakerGenVer2("/home/aviv/Data/Voxceleb/vox1_dev_wav/wav",
                                                "/home/aviv/Data/Voxceleb/synthetic")
-    snyth_convo_gen.generate_samples(1000)
+    snyth_convo_gen.generate_samples(100000)
